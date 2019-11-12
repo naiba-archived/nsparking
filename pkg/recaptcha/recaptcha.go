@@ -26,7 +26,7 @@ type rcResp struct {
 // Verify ..
 func (rc *ReCaptcha) Verify(response, remoteip string) bool {
 	params := url.Values{"secret": {rc.Secret}, "response": {response}, "remoteip": {remoteip}}
-	resp, err := http.PostForm("https://www.recaptcha.net/recaptcha/api/siteverify ", params)
+	resp, err := http.PostForm("https://www.recaptcha.net/recaptcha/api/siteverify", params)
 	if err != nil {
 		return false
 	}
