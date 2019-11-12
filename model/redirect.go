@@ -4,7 +4,7 @@ import "time"
 
 // Redirect ..
 type Redirect struct {
-	Domain    string
+	Server    string `gorm:"type:char(10);PRIMARY_KEY"`
 	To        string
 	IP        string
 	UserAgent string
