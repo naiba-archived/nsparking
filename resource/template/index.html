@@ -27,12 +27,16 @@
                             <div class="field">
                                 <label for="" class="label">跳转地址</label>
                                 <div class="control has-icons-left">
-                                    <input type="url" placeholder="https://heming.is.sb/[domain]" class="input"
+                                    <input id="to" type="url" placeholder="https://heming.is.sb/[domain]" class="input"
                                         required>
                                     <span class="icon is-small is-left">
                                         <i class="fa fa-globe"></i>
                                     </span>
                                 </div>
+                                <p style="padding: 1rem;">
+                                    您可以在链接中使用 <code>[domain]</code>、<code>[prefix]</code> 和
+                                    <code>[suffix]</code> 占位符，在跳转时会根据域名替换为 <code>nb.com|nb|.com</code> 。
+                                </p>
                             </div>
                             <div class="field">
                                 <label for="" class="label">人机验证</label>
@@ -41,24 +45,23 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <button class="button is-success">
+                                <button onclick="up(this)" class="button is-success">
                                     启动跳转
                                 </button>
                             </div>
-                            <div class="message is-primary" style="display: unset;">
+                            <div id="msgOK" class="message is-primary" style="display: none;">
                                 <div class="message-header">
                                     <p>已生成专属 Name Server</p>
                                 </div>
                                 <div class="message-body">
-                                    请将您的NS设置为 <code>hemingsb.fuling.co</code>，访问域名时会自动跳转到您设置的链接。
+                                    请将您的NS设置为 <code id="msgOKBody"></code>，访问域名时会自动跳转到您设置的链接。
                                 </div>
                             </div>
-                            <div class="message is-warning" style="display: none;">
+                            <div id="msgErr" class="message is-warning" style="display: none;">
                                 <div class="message-header">
-                                    <p>已生成专属 Name Server</p>
+                                    <p>Oops 有些问题呢</p>
                                 </div>
-                                <div class="message-body">
-                                    请将您的NS设置为 <code>hemingsb.fuling.co</code>，访问域名时会自动跳转到您设置的链接。
+                                <div id="msgErrBody" class="message-body">
                                 </div>
                             </div>
                         </div>
@@ -69,9 +72,46 @@
     </section>
     <script src="https://www.recaptcha.net/recaptcha/api.js" async defer></script>
     <script>
-        postData('/up', { answer: 42 })
-            .then(data => console.log(data)) // JSON from `response.json()` call
-            .catch(error => console.error(error))
+        function up(btn) {
+            btn.classList.add("is-loading")
+            const msgOK = document.getElementById("msgOK")
+            const msgOKBody = document.getElementById("msgOKBody")
+            const msgErr = document.getElementById("msgErr")
+            const msgErrBody = document.getElementById("msgErrBody")
+
+            msgOK.setAttribute("style", "display:none;")
+            msgOKBody.textContent = "";
+            msgErr.setAttribute("style", "display:none;")
+            msgErrBody.textContent = "";
+
+            const toEl = document.getElementById("to")
+            const g = document.getElementById("g-recaptcha-response")
+
+            if (!toEl.value) {
+                btn.classList.remove("is-loading")
+                msgErr.removeAttribute("style")
+                msgErrBody.textContent = "必须填写跳转地址哦"
+                return
+            }
+
+            if (!g.value) {
+                btn.classList.remove("is-loading")
+                msgErr.removeAttribute("style")
+                msgErrBody.textContent = "必须通过人机验证哦"
+                return
+            }
+
+            postData('/up', { g: g.value, to: toEl.value })
+                .then(data => {
+                    btn.classList.remove("is-loading")
+                    console.log(data)
+                })
+                .catch(error => {
+                    btn.classList.remove("is-loading")
+                    msgErr.removeAttribute("style")
+                    msgErrBody.textContent = error;
+                })
+        }
 
         function postData(url, data) {
             return fetch(url, {
