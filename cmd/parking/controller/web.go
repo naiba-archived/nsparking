@@ -2,6 +2,8 @@ package controller
 
 import (
 	"fmt"
+	"html/template"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -9,14 +11,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/naiba/com"
 
+	"github.com/naiba/nsparking/data"
 	"github.com/naiba/nsparking/model"
 )
 
 // ServeWeb ...
 func ServeWeb() {
 	r := gin.Default()
-	r.LoadHTMLGlob("resource/template/*")
-	r.Static("/static", "resource/static")
+	t, err := loadTemplate()
+	if err != nil {
+		panic(err)
+	}
+	r.SetHTMLTemplate(t)
+	r.StaticFS("/static", data.StaticFS)
 	// 处理域名跳转
 	r.Use(func(c *gin.Context) {
 		if !strings.HasSuffix(c.Request.Host, model.Domain) {
@@ -37,7 +44,7 @@ func ServeWeb() {
 	})
 	// 首页
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{
+		c.HTML(http.StatusOK, "/index.html", gin.H{
 			"GClient": model.GClient,
 		})
 	})
@@ -67,9 +74,9 @@ func up(c *gin.Context) {
 	}
 
 	if !captcha.Verify(ur.G, c.ClientIP()) {
-		// up.Msg = fmt.Sprintf("人机验证未通过，请重试")
-		// c.JSON(http.StatusOK, up)
-		// return
+		up.Msg = fmt.Sprintf("人机验证未通过，请重试")
+		c.JSON(http.StatusOK, up)
+		return
 	}
 
 	var r model.Redirect
@@ -87,4 +94,22 @@ func up(c *gin.Context) {
 	up.Success = true
 	up.Data = fmt.Sprintf("%s.%s", r.Server, model.Domain)
 	c.JSON(http.StatusOK, up)
+}
+
+func loadTemplate() (*template.Template, error) {
+	t := template.New("")
+	for name, file := range data.TemplateFS.Files {
+		if file.IsDir() || !strings.HasSuffix(name, ".html") {
+			continue
+		}
+		h, err := ioutil.ReadAll(file)
+		if err != nil {
+			return nil, err
+		}
+		t, err = t.New(name).Parse(string(h))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return t, nil
 }
