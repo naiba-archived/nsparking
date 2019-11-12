@@ -2,6 +2,9 @@ package controller
 
 import (
 	"net"
+	"strconv"
+
+	"github.com/naiba/nsparking/pkg/log"
 
 	"github.com/miekg/dns"
 )
@@ -28,4 +31,14 @@ func (dh *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		}
 	}
 	w.WriteMsg(&msg)
+}
+
+// ServeDNS ..
+func ServeDNS() {
+	log.Println("Starting DNS server !!")
+	srv := &dns.Server{Addr: ":" + strconv.Itoa(53), Net: "udp"}
+	srv.Handler = &DNSHandler{}
+	if err := srv.ListenAndServe(); err != nil {
+		log.Println("Failed to set udp listener ", err.Error())
+	}
 }
