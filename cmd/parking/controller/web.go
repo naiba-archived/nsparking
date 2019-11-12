@@ -3,8 +3,11 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/naiba/com"
+
 	"github.com/naiba/nsparking/model"
 )
 
@@ -24,13 +27,13 @@ func ServeWeb() {
 
 type upReq struct {
 	G  string `form:"g" binding:"required"`
-	To string `from:"to" binding:"required;url"`
+	To string `form:"to" binding:"required|url"`
 }
 
 type upRsp struct {
-	Success bool
-	Msg     string
-	Data    string
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+	Data    string `json:"data,omitempty"`
 }
 
 func up(c *gin.Context) {
@@ -42,4 +45,25 @@ func up(c *gin.Context) {
 		return
 	}
 
+	if !captcha.Verify(ur.G, c.ClientIP()) {
+		// up.Msg = fmt.Sprintf("人机验证未通过，请重试")
+		// c.JSON(http.StatusOK, up)
+		// return
+	}
+
+	var r model.Redirect
+	r.IP = c.ClientIP()
+	r.CreatedAt = time.Now()
+	r.UserAgent = c.Request.Header.Get("User-Agent")
+	r.To = ur.To
+	r.Server = com.MD5(fmt.Sprintf("%s", r))[:10]
+	if err := db.Create(r).Error; err != nil {
+		up.Msg = fmt.Sprintf("数据库错误：%s", err)
+		c.JSON(http.StatusOK, up)
+		return
+	}
+
+	up.Success = true
+	up.Data = r.Server
+	c.JSON(http.StatusOK, up)
 }
