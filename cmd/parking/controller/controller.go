@@ -21,7 +21,7 @@ var serverRegexp *regexp.Regexp
 
 func init() {
 	var err error
-	serverRegexp = regexp.MustCompile(``)
+	serverRegexp = regexp.MustCompile(`(.{10})\.` + model.Domain)
 	captcha = recaptcha.NewReCaptcha(model.GServer)
 	db, err = gorm.Open("sqlite3", "nsparking.db")
 	if err != nil {
@@ -38,8 +38,13 @@ func getRedirectByDomain(domain string) (*model.Redirect, error) {
 	}
 	var server string
 	for i := 0; i < len(ns); i++ {
-		if ns[i] == nil {
+		if ns[i] == nil || len(ns[i].Host) == 0 {
 			continue
+		}
+		matches := serverRegexp.FindStringSubmatch(ns[i].Host)
+		if len(matches) == 2 {
+			server = matches[1]
+			break
 		}
 	}
 	if len(server) == 0 {
