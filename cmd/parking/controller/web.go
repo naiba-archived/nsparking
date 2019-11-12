@@ -27,7 +27,7 @@ func ServeWeb() {
 
 type upReq struct {
 	G  string `form:"g" binding:"required"`
-	To string `form:"to" binding:"required|url"`
+	To string `form:"to" binding:"url,required"`
 }
 
 type upRsp struct {

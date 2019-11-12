@@ -73,6 +73,9 @@
     <script src="https://www.recaptcha.net/recaptcha/api.js" async defer></script>
     <script>
         function up(btn) {
+            if (btn.classList.contains("is-loading")) {
+                return
+            }
             btn.classList.add("is-loading")
             const msgOK = document.getElementById("msgOK")
             const msgOKBody = document.getElementById("msgOKBody")
@@ -104,7 +107,13 @@
             postData('/up', { g: g.value, to: toEl.value })
                 .then(data => {
                     btn.classList.remove("is-loading")
-                    console.log(data)
+                    if (data.success) {
+                        msgOK.removeAttribute("style")
+                        msgOKBody.textContent = data.data
+                    } else {
+                        msgErr.removeAttribute("style")
+                        msgErrBody.textContent = data.msg;
+                    }
                 })
                 .catch(error => {
                     btn.classList.remove("is-loading")
