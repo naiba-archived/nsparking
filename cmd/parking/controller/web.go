@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,11 +17,31 @@ func ServeWeb() {
 	r := gin.Default()
 	r.LoadHTMLGlob("resource/template/*")
 	r.Static("/static", "resource/static")
+	// 处理域名跳转
+	r.Use(func(c *gin.Context) {
+		if !strings.HasSuffix(c.Request.Host, model.Domain) {
+			rd, err := getRedirectByDomain(c.Request.Host)
+			if err != nil {
+				c.String(http.StatusOK, "错误：未找到对应跳转")
+				c.Abort()
+				return
+			}
+			domain, prefix, suffix := parseDomain(c.Request.Host)
+			rd.To = strings.ReplaceAll(rd.To, "[domain]", domain)
+			rd.To = strings.ReplaceAll(rd.To, "[prefix]", prefix)
+			rd.To = strings.ReplaceAll(rd.To, "[suffix]", suffix)
+			c.Redirect(http.StatusFound, rd.To)
+			c.Abort()
+			return
+		}
+	})
+	// 首页
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"GClient": model.GClient,
 		})
 	})
+	// 处理启动跳转
 	r.POST("/up", up)
 	r.Run(":80")
 }

@@ -4,12 +4,12 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/naiba/nsparking/model"
+
 	"github.com/naiba/nsparking/pkg/log"
 
 	"github.com/miekg/dns"
 )
-
-var domainsToAddresses map[string]string = map[string]string{}
 
 // DNSHandler 服务器
 type DNSHandler struct{}
@@ -22,11 +22,12 @@ func (dh *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.TypeA:
 		msg.Authoritative = true
 		domain := msg.Question[0].Name
-		address, ok := domainsToAddresses[domain]
-		if ok {
+		_, err := getRedirectByDomain(domain)
+		log.Println(err)
+		if err == nil {
 			msg.Answer = append(msg.Answer, &dns.A{
 				Hdr: dns.RR_Header{Name: domain, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
-				A:   net.ParseIP(address),
+				A:   net.ParseIP(model.IP),
 			})
 		}
 	}
