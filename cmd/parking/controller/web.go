@@ -64,6 +64,6 @@ func up(c *gin.Context) {
 	}
 
 	up.Success = true
-	up.Data = r.Server
+	up.Data = fmt.Sprintf("%s.%s", r.Server, model.Domain)
 	c.JSON(http.StatusOK, up)
 }
