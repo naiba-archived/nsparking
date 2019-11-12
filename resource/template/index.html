@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>穷逼停放</title>
+    <link rel="shortcut icon" type="image/png" href="/static/favicon.png" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css">
+    <style>
+        .g-recaptcha>div {
+            text-align: center !important;
+            width: unset !important;
+        }
+    </style>
+</head>
+
+<body>
+    <section class="hero is-primary is-fullheight">
+        <div class="hero-body">
+            <div class="container">
+                <div class="columns is-centered">
+                    <div class="column is-7-tablet is-6-desktop is-5-widescreen">
+                        <div class="box">
+                            <div class="field">
+                                <label for="" class="label">跳转地址</label>
+                                <div class="control has-icons-left">
+                                    <input type="url" placeholder="https://heming.is.sb/[domain]" class="input"
+                                        required>
+                                    <span class="icon is-small is-left">
+                                        <i class="fa fa-globe"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label for="" class="label">人机验证</label>
+                                <div class="control is-centered">
+                                    <div class="g-recaptcha" data-sitekey="{{.GClient}}"></div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <button class="button is-success">
+                                    启动跳转
+                                </button>
+                            </div>
+                            <article class="message is-primary">
+                                <div class="message-header">
+                                    <p>已生成专属 Name Server</p>
+                                </div>
+                                <div class="message-body">
+                                    请将您的NS设置为 <code>hemingsb.fuling.co</code>，访问域名时会自动跳转到您设置的链接。
+                                </div>
+                            </article>
+                            </d>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </section>
+    <script src="https://www.recaptcha.net/recaptcha/api.js" async defer></script>
+</body>
+
+</html>
