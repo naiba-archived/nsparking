@@ -1,11 +1,10 @@
 package main
 
 import (
-	"context"
 	"log"
-	"net"
 
 	"github.com/bobesa/go-domain-util/domainutil"
+	"github.com/miekg/dns"
 )
 
 func main() {
@@ -16,18 +15,15 @@ func main() {
 		"a.baidu.com.cn",
 	}
 	for i := 0; i < len(domains); i++ {
-		log.Println(domains[i], domainutil.Domain(domains[i]))
+		log.Println(domains[i], domainutil.Domain(domains[i]), dns.SplitDomainName(domains[i]))
 	}
 
-	resolver := &net.Resolver{
-		PreferGo:     true,
-		StrictErrors: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{}
-			return d.DialContext(ctx, "udp", "223.5.5.5:53")
-		},
+	var resolver dns.Client
+	q := new(dns.Msg)
+	q.SetQuestion("nsparking.tk.", dns.TypeNS)
+	q.RecursionDesired = true
+	msg, _, _ := resolver.Exchange(q, "223.5.5.5:53")
+	for i := 0; i < len(msg.Answer); i++ {
+		log.Println(msg.Answer[i].(*dns.NS).Ns)
 	}
-
-	ns, err := resolver.LookupNS(context.Background(), "nsparking.tk")
-	log.Println(ns[0], err)
 }

@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"context"
 	"fmt"
-	"net"
 	"regexp"
+	"strings"
+
+	"github.com/miekg/dns"
 
 	"github.com/bobesa/go-domain-util/domainutil"
 	"github.com/jinzhu/gorm"
@@ -19,7 +20,7 @@ import (
 var db *gorm.DB
 var captcha *recaptcha.ReCaptcha
 var serverRegexp *regexp.Regexp
-var resolver *net.Resolver
+var resolver dns.Client
 
 func init() {
 	var err error
@@ -32,26 +33,31 @@ func init() {
 	db = db.Debug()
 	db.AutoMigrate(model.Redirect{}, model.Stat{})
 
-	resolver = &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{}
-			return d.DialContext(ctx, "udp", "223.5.5.5:53")
-		},
+}
+
+func getNS(domain string) ([]string, error) {
+	q := new(dns.Msg)
+	q.SetQuestion(dns.Fqdn(domain), dns.TypeNS)
+	q.RecursionDesired = true
+	msg, _, err := resolver.Exchange(q, "223.5.5.5:53")
+	var ns []string
+	for i := 0; i < len(msg.Answer); i++ {
+		ns = append(ns, msg.Answer[i].(*dns.NS).Ns)
 	}
+	return ns, err
 }
 
 func getRedirectByDomain(domain string) (*model.Redirect, error) {
-	ns, err := resolver.LookupNS(context.Background(), domainutil.Domain(domain))
+	if strings.HasSuffix(domain, ".") {
+		domain = domain[:len(domain)-1]
+	}
+	ns, err := getNS(domainutil.Domain(domain))
 	if err != nil || len(ns) == 0 {
 		return nil, fmt.Errorf("NS设置错误：%s", err)
 	}
 	var server string
 	for i := 0; i < len(ns); i++ {
-		if ns[i] == nil || len(ns[i].Host) == 0 {
-			continue
-		}
-		matches := serverRegexp.FindStringSubmatch(ns[i].Host)
+		matches := serverRegexp.FindStringSubmatch(ns[i])
 		if len(matches) == 2 {
 			server = matches[1]
 			break
