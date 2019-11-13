@@ -40,6 +40,9 @@ func getNS(domain string) ([]string, error) {
 	q.RecursionDesired = true
 	msg, _, err := resolver.Exchange(q, "223.5.5.5:53")
 	var ns []string
+	if err != nil {
+		return ns, err
+	}
 	for i := 0; i < len(msg.Answer); i++ {
 		ns = append(ns, msg.Answer[i].(*dns.NS).Ns)
 	}
