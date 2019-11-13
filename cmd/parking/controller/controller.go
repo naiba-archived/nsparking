@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"regexp"
@@ -18,6 +19,7 @@ import (
 var db *gorm.DB
 var captcha *recaptcha.ReCaptcha
 var serverRegexp *regexp.Regexp
+var resolver *net.Resolver
 
 func init() {
 	var err error
@@ -29,10 +31,18 @@ func init() {
 	}
 	db = db.Debug()
 	db.AutoMigrate(model.Redirect{}, model.Stat{})
+
+	resolver = &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{}
+			return d.DialContext(ctx, "udp", "223.5.5.5:53")
+		},
+	}
 }
 
 func getRedirectByDomain(domain string) (*model.Redirect, error) {
-	ns, err := net.LookupNS(domainutil.Domain(domain))
+	ns, err := resolver.LookupNS(context.Background(), domainutil.Domain(domain))
 	if err != nil || len(ns) == 0 {
 		return nil, fmt.Errorf("NS设置错误：%s", err)
 	}
