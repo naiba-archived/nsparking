@@ -24,7 +24,7 @@ var resolver dns.Client
 
 func init() {
 	var err error
-	serverRegexp = regexp.MustCompile(`(.{10})\.` + model.Domain)
+	serverRegexp = regexp.MustCompile(`(.{10})\.ns\d\.` + model.Domain)
 	captcha = recaptcha.NewReCaptcha(model.GServer)
 	db, err = gorm.Open("sqlite3", "nsparking.db")
 	if err != nil {
@@ -32,7 +32,6 @@ func init() {
 	}
 	db = db.Debug()
 	db.AutoMigrate(model.Redirect{}, model.Stat{})
-
 }
 
 func getNS(domain string) ([]string, error) {
