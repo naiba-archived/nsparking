@@ -124,10 +124,10 @@ func up(c *gin.Context) {
 
 	var r model.Parking
 
-	r.Password = com.MD5(strings.TrimSpace(ur.Password))
+	ur.Password = com.MD5(strings.TrimSpace(ur.Password))
 
 	if ur.ID != "" {
-		if r.Password == "" {
+		if ur.Password == "" {
 			up.Msg = fmt.Sprintf("管理密码不能为空：%s", ur.Password)
 			c.JSON(http.StatusOK, up)
 			return
