@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
+	"github.com/miekg/dns"
 	"github.com/naiba/com"
 
 	"github.com/naiba/nsparking/data"
@@ -22,30 +24,39 @@ func ServeWeb() {
 	if err != nil {
 		panic(err)
 	}
-	r.SetHTMLTemplate(t)
-	r.StaticFS("/static", data.StaticFS)
+	var templatePrefix string
+	if model.Domain == "localhost" {
+		r.LoadHTMLGlob("resource/template/*")
+		r.Static("/static", "resource/static")
+	} else {
+		templatePrefix = "/"
+		r.SetHTMLTemplate(t)
+		r.StaticFS("/static", data.StaticFS)
+	}
 	// 处理域名跳转
 	r.Use(func(c *gin.Context) {
 		if !strings.HasSuffix(c.Request.Host, model.Domain) {
 			rd, err := getRedirectByDomain(c.Request.Host)
-			if err != nil {
-				c.String(http.StatusOK, "错误：未找到对应跳转")
+			if err != nil || rd.Mode != "url" {
+				c.String(http.StatusOK, "错误：未找到对应跳转，您配置的是URL跳转模式吗？")
 				c.Abort()
 				return
 			}
 			domain, prefix, suffix := parseDomain(c.Request.Host)
-			rd.To = strings.ReplaceAll(rd.To, "[domain]", domain)
-			rd.To = strings.ReplaceAll(rd.To, "[prefix]", prefix)
-			rd.To = strings.ReplaceAll(rd.To, "[suffix]", suffix)
-			c.Redirect(http.StatusFound, rd.To)
+			rd.Value = strings.ReplaceAll(rd.Value, "[domain]", domain)
+			rd.Value = strings.ReplaceAll(rd.Value, "[prefix]", prefix)
+			rd.Value = strings.ReplaceAll(rd.Value, "[suffix]", suffix)
+			c.Redirect(http.StatusFound, rd.Value)
 			c.Abort()
 			return
 		}
 	})
+
 	// 首页
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "/index.html", gin.H{
+		c.HTML(http.StatusOK, templatePrefix+"index.html", gin.H{
 			"GClient": model.GClient,
+			"Domain":  model.Domain,
 		})
 	})
 	// 处理启动跳转
@@ -54,8 +65,12 @@ func ServeWeb() {
 }
 
 type upReq struct {
-	G  string `form:"g" binding:"required"`
-	To string `form:"to" binding:"url,required"`
+	G     string `binding:"required" json:"g,omitempty"`
+	Mode  string `binding:"required" json:"mode,omitempty"`
+	Value string `binding:"required" json:"value,omitempty"`
+
+	ID       string `json:"id,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type upRsp struct {
@@ -73,26 +88,66 @@ func up(c *gin.Context) {
 		return
 	}
 
+	if ok := model.Modes[ur.Mode]; !ok {
+		up.Msg = fmt.Sprintf("不支持的模式：%s", ur.Mode)
+		c.JSON(http.StatusOK, up)
+		return
+	}
+
+	switch ur.Mode {
+	case "a":
+		if !govalidator.IsIPv4(ur.Value) {
+			up.Msg = fmt.Sprintf("A 记录不符合规范：%s", ur.Value)
+			c.JSON(http.StatusOK, up)
+			return
+		}
+	case "cname":
+		ur.Value = dns.Fqdn(ur.Value)
+		if !govalidator.IsDNSName(ur.Value) {
+			up.Msg = fmt.Sprintf("主机记录不符合规范：%s", ur.Value)
+			c.JSON(http.StatusOK, up)
+			return
+		}
+	case "url":
+		if !govalidator.IsURL(ur.Value) {
+			up.Msg = fmt.Sprintf("URL 不符合规范：%s", ur.Value)
+			c.JSON(http.StatusOK, up)
+			return
+		}
+	}
+
 	if !captcha.Verify(ur.G, c.ClientIP()) {
 		up.Msg = fmt.Sprintf("人机验证未通过，请重试")
 		c.JSON(http.StatusOK, up)
 		return
 	}
 
-	var r model.Redirect
+	var r model.Parking
+
+	if ur.ID != "" {
+		if err := db.Where("id = ? AND password != '' AND password = ?", ur.ID, ur.Password).First(&r).Error; err != nil {
+			up.Msg = fmt.Sprintf("未找到该记录：%s", err)
+			c.JSON(http.StatusOK, up)
+			return
+		}
+	} else {
+		r.Password = com.MD5(ur.Password)
+	}
+
 	r.IP = c.ClientIP()
 	r.CreatedAt = time.Now()
 	r.UserAgent = c.Request.Header.Get("User-Agent")
-	r.To = ur.To
-	r.Server = com.MD5(fmt.Sprintf("%s", r))[:10]
-	if err := db.Create(r).Error; err != nil {
+	r.Value = ur.Value
+	r.ID = com.MD5(fmt.Sprintf("%s", r))[:10]
+
+	if err := db.Save(r).Error; err != nil {
 		up.Msg = fmt.Sprintf("数据库错误：%s", err)
 		c.JSON(http.StatusOK, up)
 		return
 	}
 
 	up.Success = true
-	up.Data = fmt.Sprintf("%s.ns1.%s, %s.ns2.%s", r.Server, model.Domain, r.Server, model.Domain)
+	up.Data = fmt.Sprintf("%s.ns1.%s, %s.ns2.%s", r.ID, model.Domain, r.ID, model.Domain)
 	c.JSON(http.StatusOK, up)
 }
 

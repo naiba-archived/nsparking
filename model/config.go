@@ -2,7 +2,7 @@ package model
 
 const (
 	// Domain ..
-	Domain = "fuling.co"
+	Domain = "localhost"
 	// IP ..
 	IP = "123.207.1.20"
 	// GClient ..

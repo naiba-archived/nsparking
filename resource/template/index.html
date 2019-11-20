@@ -14,6 +14,7 @@
             text-align: center !important;
             width: unset !important;
         }
+
         a {
             color: palevioletred !important;
         }
@@ -28,9 +29,21 @@
                     <div class="column is-7-tablet is-6-desktop is-5-widescreen">
                         <div class="box">
                             <div class="field">
+                                <label for="" class="label">选择模式</label>
+                                <div class="control">
+                                    <div class="select" style="width: 100%;">
+                                        <select id="modeSelect" style="width: 100%;" onchange="changeMode()">
+                                            <option value="url">URL转发</option>
+                                            <option value="cname">CNAME</option>
+                                            <option value="a">A 记录</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field" id="urlInput">
                                 <label for="" class="label">跳转地址</label>
                                 <div class="control has-icons-left">
-                                    <input id="to" type="url" placeholder="https://heming.is.sb/[domain]" class="input"
+                                    <input id="url" type="url" placeholder="https://heming.is.sb/[domain]" class="input"
                                         required>
                                     <span class="icon is-small is-left">
                                         <i class="fa fa-globe"></i>
@@ -39,6 +52,36 @@
                                 <p style="padding: 1rem;">
                                     您可以在链接中使用 <code>[domain]</code>、<code>[prefix]</code> 和
                                     <code>[suffix]</code> 占位符，在跳转时会根据域名替换为 <code>nb.com|nb|.com</code> 。
+                                </p>
+                            </div>
+                            <div class="field" id="cnameInput" style="display: none;">
+                                <label for="" class="label">主机记录</label>
+                                <div class="control">
+                                    <input id="cname" placeholder="parking.examlpe.com" class="input" required>
+                                </div>
+                            </div>
+                            <div class="field" id="aInput" style="display: none;">
+                                <label for="" class="label">IP 记录</label>
+                                <div class="control">
+                                    <input id="a" placeholder="127.0.0.1" class="input" required>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label for="" class="label">管理密码</label>
+                                <div class="control">
+                                    <input type="url" placeholder="方便未来管理停放配置" class="input">
+                                </div>
+                                <p style="padding: 1rem;">
+                                    设置管理密码可以方便您在后续管理配置的停放。
+                                </p>
+                            </div>
+                            <div class="field">
+                                <label for="" class="label">停放 ID</label>
+                                <div class="control">
+                                    <input type="url" placeholder="aea32na299" class="input">
+                                </div>
+                                <p style="padding: 1rem;">
+                                    如果您输入了 <code><b>[停放ID]</b>.ns.{{.Domain}}</code> 和 之前设置的密码，我们将为您修改之前的配置。
                                 </p>
                             </div>
                             <div class="field">
@@ -68,7 +111,8 @@
                                 </div>
                             </div>
                             <p style="padding: 1rem;" class="has-text-centered	has-text-weight-light">
-                                本服务由 <a href="https://www.fuling.co">隔壁老刘</a> 赞助服务器，<a href="https://qiongbi.net">穷逼</a> 提供技术支持，交流群 <code>423546425</code>。
+                                本服务由 <a href="https://www.fuling.co">隔壁老刘</a> 赞助服务器，<a href="https://qiongbi.net">穷逼</a>
+                                提供技术支持，交流群 <code>423546425</code>。
                             </p>
                         </div>
                     </div>
@@ -78,25 +122,39 @@
     </section>
     <script src="https://www.recaptcha.net/recaptcha/api.js" async defer></script>
     <script>
+        const msgOK = document.getElementById("msgOK")
+        const aInput = document.getElementById("aInput")
+        const modeSelect = document.getElementById("modeSelect")
+        const cnameInput = document.getElementById("cnameInput")
+        const urlInput = document.getElementById("urlInput")
+        const msgOKBody = document.getElementById("msgOKBody")
+        const msgErr = document.getElementById("msgErr")
+        const msgErrBody = document.getElementById("msgErrBody")
+        const url = document.getElementById("url")
+        const g = document.getElementById("g-recaptcha-response")
+
+        function traggleShow(what) {
+            urlInput.setAttribute("style", what == 'url' ? '' : 'display: none;')
+            aInput.setAttribute("style", what == 'a' ? '' : 'display: none;')
+            cnameInput.setAttribute("style", what == 'cname' ? '' : 'display: none;')
+        }
+
+        function changeMode() {
+            traggleShow(modeSelect.options[modeSelect.selectedIndex].value)
+        }
+
         function up(btn) {
             if (btn.classList.contains("is-loading")) {
                 return
             }
             btn.classList.add("is-loading")
-            const msgOK = document.getElementById("msgOK")
-            const msgOKBody = document.getElementById("msgOKBody")
-            const msgErr = document.getElementById("msgErr")
-            const msgErrBody = document.getElementById("msgErrBody")
 
             msgOK.setAttribute("style", "display:none;")
             msgOKBody.textContent = "";
             msgErr.setAttribute("style", "display:none;")
             msgErrBody.textContent = "";
 
-            const toEl = document.getElementById("to")
-            const g = document.getElementById("g-recaptcha-response")
-
-            if (!toEl.value) {
+            if (!url.value) {
                 btn.classList.remove("is-loading")
                 msgErr.removeAttribute("style")
                 msgErrBody.textContent = "必须填写跳转地址哦"
@@ -110,7 +168,7 @@
                 return
             }
 
-            postData('/up', { g: g.value, to: toEl.value })
+            postData('/up', { g: g.value, to: url.value })
                 .then(data => {
                     btn.classList.remove("is-loading")
                     if (data.success) {

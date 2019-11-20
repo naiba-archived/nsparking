@@ -31,7 +31,7 @@ func init() {
 		panic(err)
 	}
 	db = db.Debug()
-	db.AutoMigrate(model.Redirect{}, model.Stat{})
+	db.AutoMigrate(model.Parking{}, model.Stat{})
 }
 
 func getNS(domain string) ([]string, error) {
@@ -49,7 +49,7 @@ func getNS(domain string) ([]string, error) {
 	return ns, err
 }
 
-func getRedirectByDomain(domain string) (*model.Redirect, error) {
+func getRedirectByDomain(domain string) (*model.Parking, error) {
 	if strings.HasSuffix(domain, ".") {
 		domain = domain[:len(domain)-1]
 	}
@@ -68,8 +68,8 @@ func getRedirectByDomain(domain string) (*model.Redirect, error) {
 	if len(server) == 0 {
 		return nil, fmt.Errorf("NS设置错误：%v", ns)
 	}
-	var rd model.Redirect
-	err = db.Model(&model.Redirect{}).Where("server = ?", server).First(&rd).Error
+	var rd model.Parking
+	err = db.Model(&model.Parking{}).Where("id = ?", server).First(&rd).Error
 	return &rd, err
 }
 
