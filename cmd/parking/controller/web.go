@@ -61,7 +61,7 @@ func ServeWeb() {
 	})
 	// 处理启动跳转
 	r.POST("/up", up)
-	r.Run(":80")
+	r.Run(":8080")
 }
 
 type upReq struct {
@@ -124,14 +124,14 @@ func up(c *gin.Context) {
 
 	var r model.Parking
 
+	r.Password = com.MD5(ur.Password)
+
 	if ur.ID != "" {
 		if err := db.Where("id = ? AND password != '' AND password = ?", ur.ID, ur.Password).First(&r).Error; err != nil {
 			up.Msg = fmt.Sprintf("未找到该记录：%s", err)
 			c.JSON(http.StatusOK, up)
 			return
 		}
-	} else {
-		r.Password = com.MD5(ur.Password)
 	}
 
 	r.IP = c.ClientIP()

@@ -2,9 +2,9 @@ package model
 
 const (
 	// Domain ..
-	Domain = "localhost"
+	Domain = "fuling.org"
 	// IP ..
-	IP = "123.207.1.20"
+	IP = "107.182.28.147"
 	// GClient ..
 	GClient = "6LdBS8IUAAAAAJH-nf07O04ckBRBnicnOwausG1N"
 	// GServer ..
