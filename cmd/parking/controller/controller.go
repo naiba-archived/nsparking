@@ -34,26 +34,37 @@ func init() {
 	db.AutoMigrate(model.Parking{}, model.Stat{})
 }
 
-func getNS(domain string) ([]string, error) {
+func getNS(domain string) ([]string, []dns.RR, error) {
 	q := new(dns.Msg)
 	q.SetQuestion(dns.Fqdn(domain), dns.TypeNS)
 	q.RecursionDesired = true
 	msg, _, err := resolver.Exchange(q, "223.5.5.5:53")
 	var ns []string
 	if err != nil {
-		return ns, err
+		return ns, nil, err
 	}
 	for i := 0; i < len(msg.Answer); i++ {
 		ns = append(ns, msg.Answer[i].(*dns.NS).Ns)
 	}
-	return ns, err
+	return ns, msg.Answer, err
+}
+
+func getA(domain string) ([]dns.RR, error) {
+	q := new(dns.Msg)
+	q.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+	q.RecursionDesired = true
+	msg, _, err := resolver.Exchange(q, "223.5.5.5:53")
+	if err != nil {
+		return msg.Answer, err
+	}
+	return msg.Answer, err
 }
 
 func getRedirectByDomain(domain string) (*model.Parking, error) {
 	if strings.HasSuffix(domain, ".") {
 		domain = domain[:len(domain)-1]
 	}
-	ns, err := getNS(domainutil.Domain(domain))
+	ns, _, err := getNS(domainutil.Domain(domain))
 	if err != nil || len(ns) == 0 {
 		return nil, fmt.Errorf("NS设置错误：%s", err)
 	}

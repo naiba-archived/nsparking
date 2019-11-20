@@ -138,6 +138,7 @@ func up(c *gin.Context) {
 	r.CreatedAt = time.Now()
 	r.UserAgent = c.Request.Header.Get("User-Agent")
 	r.Value = ur.Value
+	r.Mode = ur.Mode
 	r.ID = com.MD5(fmt.Sprintf("%s", r))[:10]
 
 	if err := db.Save(r).Error; err != nil {

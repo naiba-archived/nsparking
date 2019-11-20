@@ -63,13 +63,13 @@
                             <div class="field" id="aInput" style="display: none;">
                                 <label for="" class="label">IP 记录</label>
                                 <div class="control">
-                                    <input id="a" placeholder="127.0.0.1" class="input" required>
+                                    <input id="aV" placeholder="127.0.0.1" class="input" required>
                                 </div>
                             </div>
                             <div class="field">
                                 <label for="" class="label">管理密码</label>
                                 <div class="control">
-                                    <input type="url" placeholder="方便未来管理停放配置" class="input">
+                                    <input id="password" type="url" placeholder="方便未来管理停放配置" class="input">
                                 </div>
                                 <p style="padding: 1rem;">
                                     设置管理密码可以方便您在后续管理配置的停放。
@@ -78,7 +78,7 @@
                             <div class="field">
                                 <label for="" class="label">停放 ID</label>
                                 <div class="control">
-                                    <input type="url" placeholder="aea32na299" class="input">
+                                    <input id="id" type="url" placeholder="aea32na299" class="input">
                                 </div>
                                 <p style="padding: 1rem;">
                                     如果您输入了 <code><b>[停放ID]</b>.ns.{{.Domain}}</code> 和 之前设置的密码，我们将为您修改之前的配置。
@@ -131,7 +131,10 @@
         const msgErr = document.getElementById("msgErr")
         const msgErrBody = document.getElementById("msgErrBody")
         const url = document.getElementById("url")
-        const g = document.getElementById("g-recaptcha-response")
+        const aV = document.getElementById("aV")
+        const id = document.getElementById("id")
+        const password = document.getElementById("password")
+        const cname = document.getElementById("cname")
 
         function traggleShow(what) {
             urlInput.setAttribute("style", what == 'url' ? '' : 'display: none;')
@@ -154,13 +157,31 @@
             msgErr.setAttribute("style", "display:none;")
             msgErrBody.textContent = "";
 
-            if (!url.value) {
+            let distV;
+
+            const mode = modeSelect.options[modeSelect.selectedIndex].value;
+
+            switch (mode) {
+                case "a":
+                    distV = aV;
+                    break;
+
+                case "cname":
+                    distV = cname;
+                    break;
+
+                default:
+                    distV = url;
+            }
+
+            if (!distV.value) {
                 btn.classList.remove("is-loading")
                 msgErr.removeAttribute("style")
-                msgErrBody.textContent = "必须填写跳转地址哦"
+                msgErrBody.textContent = "必须填写配置值哦"
                 return
             }
 
+            const g = document.getElementById("g-recaptcha-response")
             if (!g.value) {
                 btn.classList.remove("is-loading")
                 msgErr.removeAttribute("style")
@@ -168,7 +189,13 @@
                 return
             }
 
-            postData('/up', { g: g.value, to: url.value })
+            postData('/up', {
+                g: g.value,
+                value: distV.value,
+                mode: mode,
+                password: password.value,
+                id: id.value,
+            })
                 .then(data => {
                     btn.classList.remove("is-loading")
                     if (data.success) {
