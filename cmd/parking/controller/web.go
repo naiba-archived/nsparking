@@ -145,7 +145,10 @@ func up(c *gin.Context) {
 	r.Value = ur.Value
 	r.Mode = ur.Mode
 	r.Password = ur.Password
-	r.ID = com.MD5(fmt.Sprintf("%s", r))[:10]
+
+	if r.ID == "" {
+		r.ID = com.MD5(fmt.Sprintf("%s", r))[:10]
+	}
 
 	if err := db.Save(r).Error; err != nil {
 		up.Msg = fmt.Sprintf("数据库错误：%s", err)
