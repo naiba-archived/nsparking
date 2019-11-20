@@ -124,10 +124,15 @@ func up(c *gin.Context) {
 
 	var r model.Parking
 
-	r.Password = com.MD5(ur.Password)
+	r.Password = com.MD5(strings.TrimSpace(ur.Password))
 
 	if ur.ID != "" {
-		if err := db.Where("id = ? AND password != '' AND password = ?", ur.ID, ur.Password).First(&r).Error; err != nil {
+		if r.Password == "" {
+			up.Msg = fmt.Sprintf("管理密码不能为空：%s", ur.Password)
+			c.JSON(http.StatusOK, up)
+			return
+		}
+		if err := db.Where("id = ? AND password = ?", ur.ID, ur.Password).First(&r).Error; err != nil {
 			up.Msg = fmt.Sprintf("未找到该记录：%s", err)
 			c.JSON(http.StatusOK, up)
 			return
